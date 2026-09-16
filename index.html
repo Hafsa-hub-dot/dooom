@@ -16360,6 +16360,7 @@ function ppResizeCharts(){
 
 function ppOpenScreen(id,{push=true}={}){
   if(!PP_SCREEN_TITLES[id])return;
+  const ppPreviousScreen=ppCurrentScreen;
 
   if(push&&!ppDirect&&ppCurrentScreen&&ppCurrentScreen!==id){
     ppNavStack.push(ppCurrentScreen);
@@ -16369,10 +16370,11 @@ function ppOpenScreen(id,{push=true}={}){
   ppCurrentScreen=id;
 
   
-  /* الأقسام لا تُكدّس في سجل زر الرجوع: الرجوع من أي قسم يعيد للرئيسية فقط. */
-  if(ppDirect && push && window.history && history.replaceState){
-    history.replaceState(
-      {...(history.state||{}),ppPortalScreen:id,ppPortalExitGuard:false},
+  /* v72 — زر الرجوع الحقيقي في الجوال:
+     كل قسم داخلي يحصل على حالة History مستقلة، وخلف الرئيسية توجد بوابة خروج محمية. */
+  if(ppDirect && push && window.history && history.pushState && ppPreviousScreen!==id){
+    history.pushState(
+      {...(history.state||{}),ppPortalScreen:id,ppPortalActive:true,ppPortalExitGuard:false},
       "",
       location.href
     );
@@ -16437,21 +16439,24 @@ window.ppConfirmExit=()=>history.back();
 window.addEventListener("popstate",event=>{
   if(!ppDirect)return;
 
-  /* من أي قسم داخلي: زر الهاتف يعيد مرة واحدة إلى الرئيسية فقط. */
-  if(ppCurrentScreen!=="ppHome"){
+  /* الحالة الواقعة خلف الرئيسية هي حاجز الخروج: لا نغادر قبل السؤال. */
+  if(event.state?.ppPortalExitGuard){
     ppOpenScreen("ppHome",{push:false});
-    history.pushState(
-      {ppPortalScreen:"ppHome",ppPortalActive:true,ppPortalExitGuard:false},
-      "",
-      location.href
-    );
+    ppShowExitConfirm();
     return;
   }
 
-  /* من الرئيسية فقط تظهر رسالة تأكيد الخروج. */
-  if(event.state?.ppPortalExitGuard){
-    ppShowExitConfirm();
+  /* رجوع الهاتف من أي صفحة داخلية يعيد إلى الصفحة المسجلة في History،
+     وغالبًا الرئيسية، بدل الخروج من التطبيق. */
+  const target=event.state?.ppPortalScreen;
+  if(target && PP_SCREEN_TITLES[target]){
+    ppOpenScreen(target,{push:false});
+    return;
   }
+
+  /* حماية احتياطية إذا لم يرسل المتصفح state. */
+  ppOpenScreen("ppHome",{push:false});
+  ppShowExitConfirm();
 });
 
 function ppClockTick(){
@@ -21496,6 +21501,134 @@ function initAnalyticsCenter(){
 }
 document.addEventListener("DOMContentLoaded",()=>setTimeout(initAnalyticsCenter,120));
 </script>
+
+
+<style id="PARENT_PREMIUM_V72">
+/* ===== v72 — واجهة ولي الأمر: قراءة مريحة + فخامة + جوال حقيقي ===== */
+body.parentDirect #studentPortal{
+  --ppWine:#7d1537;--ppWine2:#5d102b;--ppTeal:#147b78;--ppInk:#293f42;--ppMuted:#687c7e;
+  background:#f7f4f5!important;
+  font-family:"IBM Plex Sans Arabic","Noto Kufi Arabic",sans-serif!important;
+}
+body.parentDirect #studentPortal .ppViewport{
+  background:
+    radial-gradient(circle at 92% 2%,rgba(125,21,55,.055),transparent 23%),
+    radial-gradient(circle at 8% 18%,rgba(20,123,120,.05),transparent 24%),
+    #fbfafb!important;
+}
+body.parentDirect #studentPortal .ppAppTop{
+  min-height:88px!important;height:auto!important;padding:13px 16px!important;
+  background:linear-gradient(135deg,#741432,#8d1a40 58%,#68102d)!important;
+  border-bottom:1px solid rgba(212,179,109,.7)!important;
+  box-shadow:0 8px 24px rgba(78,11,36,.19)!important;
+}
+body.parentDirect #studentPortal .ppAppTitle{font-size:28px!important;line-height:1.25!important}
+body.parentDirect #studentPortal .ppAppSub{font-size:13px!important;line-height:1.55!important;color:#f8e8ee!important}
+body.parentDirect #studentPortal .ppIconBtn{
+  width:50px!important;height:50px!important;border-radius:16px!important;
+  background:#fff!important;color:#7d1537!important;border:0!important;
+  box-shadow:0 5px 0 #d8c5cb,0 10px 18px rgba(50,0,20,.16)!important
+}
+body.parentDirect #studentPortal .ppScreen{padding:16px 17px 112px!important}
+body.parentDirect #studentPortal .ppHomeHero{
+  padding:25px 21px!important;border-radius:25px!important;
+  background:radial-gradient(circle at 8% 7%,rgba(255,226,156,.25),transparent 24%),linear-gradient(145deg,#68112f,#941b45)!important;
+  box-shadow:0 8px 0 #5c102b,0 18px 32px rgba(84,11,37,.20)!important
+}
+body.parentDirect #studentPortal .ppHomeHero small{font-size:15px!important}
+body.parentDirect #studentPortal .ppHomeHero h2{font-size:31px!important;line-height:1.5!important;margin:7px 0!important}
+body.parentDirect #studentPortal .ppHomeHero p{font-size:15px!important}
+body.parentDirect #studentPortal .ppHomePeriodLabel{font-size:14px!important}
+body.parentDirect #studentPortal .ppHeroStat b{font-size:25px!important}
+body.parentDirect #studentPortal .ppHeroStat span{font-size:12px!important}
+body.parentDirect #studentPortal .ppSectionLabel{margin:22px 2px 12px!important}
+body.parentDirect #studentPortal .ppSectionLabel strong{font-size:22px!important}
+body.parentDirect #studentPortal .ppSectionLabel span{font-size:13px!important;line-height:1.7!important}
+body.parentDirect #studentPortal .ppMenuList{gap:13px!important}
+body.parentDirect #studentPortal .ppMenuCard{
+  min-height:92px!important;grid-template-columns:64px minmax(0,1fr) 34px!important;
+  padding:16px!important;border-radius:21px!important;background:#fff!important;
+  border:1px solid #eadfe2!important;
+  box-shadow:0 6px 0 #ebe3e5,0 13px 25px rgba(61,27,39,.07)!important
+}
+body.parentDirect #studentPortal .ppMenuIcon{width:62px!important;height:62px!important}
+body.parentDirect #studentPortal .ppMenuText strong{font-size:18px!important;line-height:1.5!important}
+body.parentDirect #studentPortal .ppMenuText span{font-size:13px!important;line-height:1.75!important;margin-top:3px!important}
+body.parentDirect #studentPortal .ppChevron{font-size:27px!important}
+body.parentDirect #studentPortal .ppPageHead h2{font-size:26px!important;line-height:1.4!important}
+body.parentDirect #studentPortal .ppPageHead p{font-size:14px!important;line-height:1.8!important}
+body.parentDirect #studentPortal .ppAgendaRow,
+body.parentDirect #studentPortal .ppGradeCard,
+body.parentDirect #studentPortal .ppNoteCard,
+body.parentDirect #studentPortal .ppChartCard,
+body.parentDirect #studentPortal .ppWhatsNewPanel,
+body.parentDirect #studentPortal .ppWeekNowCard,
+body.parentDirect #studentPortal .ppProgressCard,
+body.parentDirect #studentPortal .ppAchievementsCard{
+  border-radius:19px!important;border:1px solid #e5dddd!important;
+  box-shadow:0 7px 18px rgba(44,57,58,.055)!important;background:#fff!important
+}
+body.parentDirect #studentPortal .ppAgendaSubject,
+body.parentDirect #studentPortal .ppGradeTop strong,
+body.parentDirect #studentPortal .ppNoteCard h3{font-size:18px!important}
+body.parentDirect #studentPortal .ppAgendaTeacher,
+body.parentDirect #studentPortal .ppGradeTop small,
+body.parentDirect #studentPortal .ppNoteCard small{font-size:12px!important}
+body.parentDirect #studentPortal .ppAgendaText,
+body.parentDirect #studentPortal .ppNoteCard p,
+body.parentDirect #studentPortal .ppNoteBlock p{font-size:15px!important;line-height:1.9!important}
+body.parentDirect #studentPortal .ppGradeMetric span{font-size:11px!important}
+body.parentDirect #studentPortal .ppGradeMetric b{font-size:15px!important}
+body.parentDirect #studentPortal .ppTag{font-size:12px!important}
+body.parentDirect #studentPortal .ppSmallBtn{font-size:13px!important;min-height:44px!important}
+body.parentDirect #studentPortal .ppEmpty{font-size:15px!important;line-height:1.9!important}
+body.parentDirect #studentPortal .ppHistoryTable{font-size:13px!important}
+body.parentDirect #studentPortal .ppHistoryTable th,
+body.parentDirect #studentPortal .ppHistoryTable td{padding:11px 8px!important}
+body.parentDirect #studentPortal .ppAnalyticsFilter label{font-size:13px!important}
+body.parentDirect #studentPortal .ppAnalyticsFilter select{font-size:14px!important;min-height:44px!important}
+body.parentDirect #studentPortal .ppChartCard h3{font-size:18px!important}
+body.parentDirect #studentPortal .ppWhatsNewCard{min-height:76px!important;padding:14px!important}
+body.parentDirect #studentPortal .ppWhatsNewCard strong{font-size:15px!important}
+body.parentDirect #studentPortal .ppWhatsNewCard small{font-size:11px!important;line-height:1.7!important}
+body.parentDirect #studentPortal .ppSmartHead strong{font-size:15px!important}
+body.parentDirect #studentPortal .ppSmartHead span{font-size:10px!important}
+body.parentDirect #studentPortal .ppWeekNowContent span,
+body.parentDirect #studentPortal .ppProgressRow strong,
+body.parentDirect #studentPortal .ppProgressRow span,
+body.parentDirect #studentPortal .ppProgressRow small{font-size:11px!important}
+body.parentDirect #studentPortal .ppWeekNowContent b{font-size:13px!important}
+body.parentDirect #studentPortal .ppAchievementChips span{font-size:11px!important}
+body.parentDirect #studentPortal .ppPinnedImportant strong{font-size:13px!important}
+body.parentDirect #studentPortal .ppPinnedImportant p{font-size:12px!important}
+body.parentDirect #studentPortal .ppFollowGrid span{font-size:12px!important}
+body.parentDirect #studentPortal .ppFollowGrid b{font-size:14px!important}
+
+/* شاشة تأكيد الخروج فوق كل شيء، مناسبة للمس */
+#ppExitConfirm{
+  position:fixed!important;inset:0!important;z-index:2147483000!important;
+  background:rgba(28,8,16,.62)!important;backdrop-filter:blur(8px)!important;
+}
+#ppExitConfirm.show{display:flex!important;align-items:center!important;justify-content:center!important;padding:22px!important}
+#ppExitConfirm .ppExitCard{
+  width:min(420px,100%)!important;padding:27px 22px!important;border-radius:27px!important;
+  background:#fff!important;box-shadow:0 28px 80px rgba(31,0,12,.34)!important;text-align:center!important
+}
+#ppExitConfirm .ppExitAsk{font-family:"El Messiri"!important;font-size:23px!important;font-weight:900!important;color:#711331!important}
+#ppExitConfirm .ppExitSub{font-size:14px!important;line-height:1.8!important;color:#6d7778!important}
+#ppExitConfirm button{min-height:54px!important;border-radius:15px!important;font-size:15px!important;font-weight:900!important}
+
+/* الجوال: لا نص أصغر من المقروء في البطاقات الأساسية */
+@media(max-width:620px){
+  body.parentDirect #studentPortal .ppAppTop{min-height:84px!important;padding:11px 13px!important}
+  body.parentDirect #studentPortal .ppAppTitle{font-size:25px!important}
+  body.parentDirect #studentPortal .ppAppSub{font-size:12px!important}
+  body.parentDirect #studentPortal .ppScreen{padding:14px 14px 112px!important}
+  body.parentDirect #studentPortal .ppHomeHero h2{font-size:28px!important}
+  body.parentDirect #studentPortal .ppMenuText strong{font-size:17px!important}
+  body.parentDirect #studentPortal .ppMenuText span{font-size:12.5px!important}
+}
+</style>
 
 </body>
 </html>
