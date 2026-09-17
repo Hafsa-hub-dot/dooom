@@ -16578,7 +16578,12 @@ function openWaitingParentPortal(){
 function openPortalFromQr(token){
   clearTimeout(parentLoadingTimer);
   const value=String(token||"").trim();
-  const s=db.students.find(x=>String(x.token||"").trim()===value);
+  /* يدعم بطاقات الإصدارات السابقة: token أو كود الطالبة أو المعرّف الداخلي. */
+  const s=db.students.find(x=>[
+    String(x.token||"").trim(),
+    String(x.code||"").trim(),
+    String(x.id||"").trim()
+  ].includes(value));
   if(s){
     $("ppEnter").disabled=false;
     $("ppEnter").innerHTML='<span>دخول المتابعة</span><b aria-hidden="true">←</b>';
@@ -20465,7 +20470,8 @@ fillScale();
 migrateLegacyPeriodIds();
 migrateLegacyStudentAgendas();
 migrateAssessmentStatuses();
-parentQrToken=new URLSearchParams(location.search).get("student")||"";
+const parentQrParams=new URLSearchParams(location.search);
+parentQrToken=parentQrParams.get("student")||parentQrParams.get("code")||parentQrParams.get("id")||"";
 /* عند فتح QR: لا نبني صفحات المعلمات الثقيلة قبل شاشة ولي الأمر. */
 if(!parentQrToken){
   renderAll();
