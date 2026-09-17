@@ -21897,6 +21897,14 @@ body.print-cards .dm50QrFrame .qr img{
   body.print-parent #parentPrint .ppNotesPrintMetrics span{display:block!important;color:#64787a!important;font-size:8.5pt!important}
   body.print-parent #parentPrint .ppNotesPrintMetrics strong{display:block!important;margin-top:2mm!important;color:#254d50!important;font-size:10.5pt!important}
   body.print-parent #parentPrint .ppNotesPrintEmpty{padding:20mm 10mm!important;border:1px solid #d7c6cd!important;border-radius:10px!important;text-align:center!important;color:#586b6e!important;font-size:12pt!important}
+
+  /* حماية للطباعة القديمة من واجهة الملاحظات: لا رموز أو أيقونات ضخمة على الورق. */
+  body.print-parent #parentPrint .ppNotesList svg,
+  body.print-parent #parentPrint .ppNotesHistory svg,
+  body.print-parent #parentPrint .ppLineIcon,
+  body.print-parent #parentPrint .ppMetricIcon{display:none!important}
+  body.print-parent #parentPrint .ppNoteCard,
+  body.print-parent #parentPrint .ppArchiveItem{box-shadow:none!important;break-inside:avoid!important;page-break-inside:avoid!important}
 }
 </style>
 
