@@ -9688,6 +9688,10 @@ button.ppHeroStat:active{transform:translateY(1px)}
 #studentPortal .ppSplashTitle{font-family:"El Messiri",sans-serif;font-size:14px;font-weight:800;color:#fff;letter-spacing:.1px}
 #studentPortal .ppSplashTitle span{color:#f1d595;font-size:12px;margin-right:3px}
 #studentPortal .ppSplashCenter{width:100%;margin:auto 0;position:relative;z-index:1}
+#studentPortal .ppParentWelcome{margin:10px auto 13px;max-width:330px;text-align:center}
+#studentPortal .ppParentWelcome span{display:block;color:#f4dba7;font-size:10px;font-weight:800;letter-spacing:.15px}
+#studentPortal .ppParentWelcome h1{margin:4px 0 5px;color:#fff;font-family:"El Messiri",sans-serif;font-size:25px;line-height:1.25;font-weight:900;text-shadow:0 3px 12px rgba(47,0,17,.25)}
+#studentPortal .ppParentWelcome p{margin:0;color:rgba(255,255,255,.88);font-size:10.5px;line-height:1.8;font-weight:600}
 #studentPortal .ppHello{margin:0 0 13px;color:#f4dba7;font-size:10px;font-weight:700;text-align:center}
 #studentPortal .ppWelcomeCard{
   min-height:151px;padding:19px 17px 17px!important;border-radius:25px!important;
@@ -11629,6 +11633,11 @@ body.parentDirect #studentPortal .ppPageHead p{font-size:7px!important}
 
           <div class="ppSplashCenter">
             <div class="ppSplashLogo ppCenteredLogo" aria-label="شعار دوم معك"></div>
+            <div class="ppParentWelcome" aria-label="رسالة ترحيب لولي الأمر">
+              <span>مرحبًا بكم، وليّ الأمر الكريم</span>
+              <h1>أنتم شريك النجاح</h1>
+              <p>بمتابعتكم واهتمامكم، نمضي مع ابنتكم خطوةً بخطوة نحو تقدّم أجمل وإنجاز أكبر.</p>
+            </div>
             <div class="ppStudentIntro ppWelcomeCard">
               <span class="ppCardShine" aria-hidden="true"></span>
               <div class="ppWelcomeCardTop">
@@ -11640,7 +11649,7 @@ body.parentDirect #studentPortal .ppPageHead p{font-size:7px!important}
               <span id="ppSplashClass">—</span>
             </div>
             <div class="ppSplashBottom">
-              <div class="ppWelcomeHint">كل تفاصيلها في مكان واحد</div>
+              <div class="ppWelcomeHint">شكرًا لحرصكم واهتمامكم المستمر بابنتكم</div>
               <button id="ppEnter" class="ppEnterBtn" type="button"><span>دخول المتابعة</span><b aria-hidden="true">←</b></button>
             </div>
             <p class="ppAppWelcome">مرحبًا بكم في تطبيق <b>دوم معك</b></p>
@@ -12171,13 +12180,8 @@ function studentPortalUrl(studentOrToken){
   try{
     const u=new URL(base);
     const s=studentOrToken&&typeof studentOrToken==="object"?studentOrToken:null;
+    /* يجب أن يبقى محتوى QR قصيرًا؛ إدخال الاسم العربي داخله يجعله كثيفًا وغير قابل للمسح بعد الطباعة. */
     u.searchParams.set("student",String(s?.token??studentOrToken??""));
-    /* نسخة احتياطية ثابتة داخل الباركود؛ تحمي الربط عند إعادة استيراد الطالبات. */
-    if(s){
-      u.searchParams.set("name",clean(s.name));
-      u.searchParams.set("grade",String(s.gradeNo??""));
-      u.searchParams.set("section",clean(s.section));
-    }
     return u.toString();
   }catch(e){
     return"";
@@ -20370,7 +20374,9 @@ $("resetCardDesign").onclick=()=>{
 /* ========================= Cards + QR ========================= */
 function makeQR(el,text){
   el.innerHTML="";
-  new QRCode(el,{text,width:104,height:104,correctLevel:QRCode.CorrectLevel.M});
+  if(!text)throw new Error("رابط الباركود فارغ");
+  /* حجم عالٍ وهامش تصحيح منخفض لأن الرابط قصير؛ النتيجة أوضح بكثير عند الطباعة. */
+  new QRCode(el,{text,width:220,height:220,correctLevel:QRCode.CorrectLevel.L});
 }
 
 $("printCards").onclick=()=>{
@@ -21769,6 +21775,22 @@ body.parentDirect #studentPortal .ppPageHead:after{content:"تظهر تفاصي�
   body.parentDirect #studentPortal .ppSetupGrid{grid-template-columns:1fr!important}
   body.parentDirect #studentPortal .ppMenuText strong{font-size:17px!important}
   body.parentDirect #studentPortal .ppMenuText span{font-size:12.5px!important}
+}
+
+/* QR للطباعة: لا نسمح بالتصغير إلى حجم لا تقرؤه كاميرا الهاتف. */
+body.print-cards .dmCardQrFrame,
+body.print-cards .dm48QrFrame{
+  width:31mm!important;
+  height:31mm!important;
+  padding:2.2mm!important;
+}
+body.print-cards .dmCardQrFrame .qr canvas,
+body.print-cards .dmCardQrFrame .qr img,
+body.print-cards .dm48QrFrame .qr canvas,
+body.print-cards .dm48QrFrame .qr img{
+  width:26mm!important;
+  height:26mm!important;
+  image-rendering:pixelated;
 }
 </style>
 
