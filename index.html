@@ -12036,6 +12036,8 @@ const FIREBASE_CONFIG={
 };
 const FIREBASE_DOCUMENT_PATH={collection:"schoolFollowup",document:"mainData_fresh_empty_20260914"};
 let cloudDb=null,cloudReady=false,cloudSaveTimer=null;
+/* رمز QR يُقرأ قبل وصول البيانات السحابية؛ نحتفظ به حتى يكتمل التحميل. */
+let parentQrToken="";
 
 function cloudStatus(message,type="info"){
   const el=$("firebaseStatus");
@@ -12083,14 +12085,18 @@ async function initializeCloudSync(){
       db=normalizeDatabase(JSON.parse(remote.data().payload));
       localStorage.setItem(DB_KEY,JSON.stringify(db));
       renderAll();
+      /* لا نُظهر "باركود غير صالح" قبل أن تصل قائمة الطالبات من Firebase. */
+      if(parentQrToken)openPortalFromQr(parentQrToken);
       cloudStatus("تم تحميل بيانات المدرسة من قاعدة البيانات ✓","ok");
     }else{
       cloudStatus("قاعدة البيانات جاهزة؛ سيُحفظ أول تعديل تلقائيًا.","ok");
       queueCloudSave();
+      if(parentQrToken)openPortalFromQr(parentQrToken);
     }
   }catch(error){
     console.error("Firebase connection error:",error);
     cloudStatus("لم يتم الاتصال بقاعدة البيانات بعد. راجعي قواعد Firestore.","warn");
+    if(parentQrToken)openInvalidParentPortal("تعذر تحميل بيانات المتابعة حاليًا. يرجى المحاولة مرة أخرى.");
   }
 }
 
@@ -16528,7 +16534,31 @@ function openPortal(id,direct=false){
   }
 }
 
-function openInvalidParentPortal(){
+function openWaitingParentPortal(){
+  ppDirect=true;
+  document.body.classList.add("parentDirect","ppLaunchOpen");
+  document.querySelector(".topTabs").style.display="none";
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  $("studentPortal").classList.add("active");
+  $("ppSplash").classList.remove("hide");
+  $("ppSplashSchool").textContent=schoolName();
+  $("ppSplashStudent").textContent="جارٍ فتح ملف الطالبة…";
+  $("ppSplashClass").textContent="لحظات، يتم تجهيز المتابعة بشكل آمن.";
+  $("ppEnter").disabled=true;
+  $("ppEnter").textContent="جارٍ التحميل…";
+}
+
+function openPortalFromQr(token){
+  const value=String(token||"").trim();
+  const s=db.students.find(x=>String(x.token||"").trim()===value);
+  if(s){
+    $("ppEnter").disabled=false;
+    $("ppEnter").innerHTML='<span>دخول المتابعة</span><b aria-hidden="true">←</b>';
+    openPortal(s.id,true);
+  }else openInvalidParentPortal();
+}
+
+function openInvalidParentPortal(message="الباركود غير صالح أو لم تعد الطالبة موجودة."){
   ppDirect=true;
   document.body.classList.add("parentDirect");
   document.body.classList.add("ppLaunchOpen");
@@ -16539,7 +16569,7 @@ function openInvalidParentPortal(){
   $("ppSplash").classList.remove("hide");
   $("ppSplashSchool").textContent=schoolName();
   $("ppSplashStudent").textContent="تعذر فتح ملف الطالبة";
-  $("ppSplashClass").textContent="الباركود غير صالح أو لم تعد الطالبة موجودة.";
+  $("ppSplashClass").textContent=message;
   $("ppEnter").disabled=true;
   $("ppEnter").textContent="تعذر الدخول";
 }
@@ -20396,17 +20426,12 @@ fillCardDesignForm();
 applyTeacherFontMode();
 applyTeacherRosterFilters();
 updateTeacherSaveStamp(contextLatestSaveTime());
-initializeCloudSync();
-
-const token=new URLSearchParams(location.search).get("student");
-if(!token){
+parentQrToken=new URLSearchParams(location.search).get("student")||"";
+if(!parentQrToken){
   document.documentElement.classList.remove("parent-boot");
 }
-if(token){
-  const s=db.students.find(x=>x.token===token);
-  if(s)openPortal(s.id,true);
-  else openInvalidParentPortal();
-}
+if(parentQrToken)openWaitingParentPortal();
+initializeCloudSync();
 </script>
 
 <style id="MENTOR_LAYOUT_V57">
@@ -21604,6 +21629,29 @@ body.parentDirect #studentPortal .ppPinnedImportant p{font-size:12px!important}
 body.parentDirect #studentPortal .ppFollowGrid span{font-size:12px!important}
 body.parentDirect #studentPortal .ppFollowGrid b{font-size:14px!important}
 
+/* v73 — ضمان وضوح هوية الطالبة والأقسام حتى عند عدم وجود رصد بعد */
+body.parentDirect #studentPortal .ppContextBar{
+  padding:14px 16px!important;
+  background:linear-gradient(135deg,#fffdfd,#f7fbfa)!important;
+  border-bottom:2px solid #d5b570!important;
+  box-shadow:0 7px 18px rgba(55,33,42,.08)!important;
+}
+body.parentDirect #studentPortal .ppContextStudent strong{
+  display:block!important;color:#741432!important;font-family:"El Messiri","Noto Kufi Arabic",sans-serif!important;
+  font-size:22px!important;font-weight:900!important;line-height:1.45!important;
+}
+body.parentDirect #studentPortal .ppContextStudent span{font-size:13px!important;color:#386b6d!important;font-weight:800!important}
+body.parentDirect #studentPortal .ppMenuCard{position:relative!important;overflow:hidden!important}
+body.parentDirect #studentPortal .ppMenuCard:before{content:"";position:absolute;inset:auto 0 0;height:4px;background:linear-gradient(90deg,#147b78,#d5b570,#7d1537);opacity:.9}
+body.parentDirect #studentPortal .ppMenuIcon{width:70px!important;height:70px!important;border-radius:22px!important;box-shadow:0 6px 14px rgba(30,73,75,.14)!important}
+body.parentDirect #studentPortal .ppMenuIcon svg{width:31px!important;height:31px!important}
+body.parentDirect #studentPortal .ppEmpty,.ppDetailEmpty{
+  min-height:118px!important;display:grid!important;place-items:center!important;text-align:center!important;
+  padding:22px!important;border:1px dashed #d7bd84!important;border-radius:18px!important;
+  color:#667b7d!important;background:linear-gradient(135deg,#fffdf8,#f7fbfa)!important;font-weight:800!important;
+}
+body.parentDirect #studentPortal .ppPageHead:after{content:"تظهر تفاصيل هذا القسم تلقائيًا عند إدخال المعلمات للمتابعة.";display:block;margin-top:6px;color:#6d8586;font-size:12px;font-weight:700;line-height:1.7}
+
 /* شاشة تأكيد الخروج فوق كل شيء، مناسبة للمس */
 #ppExitConfirm{
   position:fixed!important;inset:0!important;z-index:2147483000!important;
@@ -21625,6 +21673,8 @@ body.parentDirect #studentPortal .ppFollowGrid b{font-size:14px!important}
   body.parentDirect #studentPortal .ppAppSub{font-size:12px!important}
   body.parentDirect #studentPortal .ppScreen{padding:14px 14px 112px!important}
   body.parentDirect #studentPortal .ppHomeHero h2{font-size:28px!important}
+  body.parentDirect #studentPortal .ppContextStudent strong{font-size:20px!important}
+  body.parentDirect #studentPortal .ppMenuIcon{width:66px!important;height:66px!important}
   body.parentDirect #studentPortal .ppMenuText strong{font-size:17px!important}
   body.parentDirect #studentPortal .ppMenuText span{font-size:12.5px!important}
 }
