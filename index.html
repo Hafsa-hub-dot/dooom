@@ -15108,33 +15108,16 @@ function weeklyStarCardsHTML(starObj){
   if(!starObj?.studentIds?.length)return "";
 
   const period=autoPeriodById(starObj.periodId);
-  return starObj.studentIds.map(id=>{
+  /* نفس شهادة ولي الأمر تمامًا: مصدر تصميم واحد يمنع اختلاف الشكل بين الواجهتين. */
+  return starObj.studentIds.map((id,index)=>{
     const s=db.students.find(x=>String(x.id)===String(id));
     if(!s)return "";
-    return `
-      <div class="starAward">
-        <div class="cornerBadge">نجمة الأسبوع</div>
-        <div class="school">${esc(schoolName())}</div>
-        <div class="subschool">بطاقة تميز فاخرة — بتصميم عربي أنيق</div>
-
-        <div class="starCenter">
-          <div class="bigStar">⭐</div>
-          <div class="starTitle">نجمة الأسبوع</div>
-          <div class="student">${esc(s.name)}</div>
-        </div>
-
-        <div class="meta">
-          <div><strong>المادة:</strong> ${esc(starObj.subject)}</div>
-          <div><strong>الصف:</strong> ${esc(classLabel(s.gradeNo,s.section))}</div>
-          <div><strong>التاريخ:</strong> ${esc(dateAR(starObj.date))}</div>
-          <div><strong>الفترة:</strong> ${period?esc(pLabel(period)):"—"}</div>
-        </div>
-
-        <div class="signature">
-          <strong>المعلمة:</strong> ${esc(teacherName(starObj.teacherId,starObj.teacherNameSnapshot||"—"))}<br>
-          <strong>التوقيع:</strong> ${esc(starObj.signature||teacherName(starObj.teacherId,starObj.teacherNameSnapshot||"")||"")}
-        </div>
-      </div>`;
+    const item={
+      key:`teacher-star-${starObj.periodId||"week"}-${id}`,
+      star:{...starObj,archived:false},
+      period
+    };
+    return ppCertificateHTML(item,s,index,false,true);
   }).join("");
 }
 
@@ -15147,8 +15130,17 @@ function printStarCards(starObj){
 
   $("starPrint").innerHTML=`<div class="printStarSheet">${cards}</div>`;
   document.body.classList.add("print-stars");
-  window.print();
-  setTimeout(()=>document.body.classList.remove("print-stars"),300);
+  const finish=()=>{
+    document.body.classList.remove("print-stars");
+    $("starPrint").innerHTML="";
+    window.removeEventListener("afterprint",finish);
+  };
+  window.addEventListener("afterprint",finish,{once:true});
+  /* ننتظر رسم الشهادة والخطوط قبل فتح نافذة الطباعة. */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    window.print();
+    setTimeout(finish,1200);
+  }));
 }
 
 
@@ -21798,6 +21790,65 @@ body.print-cards .dm50QrFrame .qr img{
   width:28mm!important;
   height:28mm!important;
   image-rendering:pixelated;
+}
+
+/* شهادات النجوم: طباعة A4 ثابتة، نظيفة، وآمنة داخل حدود الورقة. */
+@media print{
+  @page{size:A4 portrait;margin:7mm}
+  body.print-stars #starPrint{display:block!important;width:196mm!important;margin:0 auto!important;padding:0!important;direction:rtl!important;background:#fff!important}
+  body.print-stars #starPrint .printStarSheet{display:block!important;width:196mm!important;padding:0!important;margin:0!important}
+  body.print-stars #starPrint .starAward{
+    box-sizing:border-box!important;width:196mm!important;max-width:196mm!important;
+    height:283mm!important;min-height:283mm!important;margin:0!important;
+    padding:15mm 13mm!important;overflow:hidden!important;box-shadow:none!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important;
+  }
+  body.print-stars #starPrint .starAward:last-child{break-after:auto!important;page-break-after:auto!important}
+  body.print-stars #starPrint .ppCertificate{
+    box-sizing:border-box!important;width:196mm!important;max-width:196mm!important;
+    height:283mm!important;min-height:283mm!important;margin:0!important;
+    padding:15mm 13mm!important;overflow:hidden!important;box-shadow:none!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important;
+  }
+  body.print-stars #starPrint .ppCertificate:last-child{break-after:auto!important;page-break-after:auto!important}
+  body.print-stars #starPrint .ppCertificate:before{inset:7mm!important;border-radius:15mm!important}
+  body.print-stars #starPrint .ppCertLogo{width:19mm!important;height:19mm!important;border-radius:5mm!important}
+  body.print-stars #starPrint .ppCertSchool h3{font-size:16pt!important}
+  body.print-stars #starPrint .ppCertSchool p{font-size:9pt!important}
+  body.print-stars #starPrint .ppCertBadge{font-size:9pt!important;padding:3mm 4mm!important}
+  body.print-stars #starPrint .ppCertStar{font-size:62pt!important;margin-top:7mm!important}
+  body.print-stars #starPrint .ppCertTitle{font-size:26pt!important;margin-top:2mm!important}
+  body.print-stars #starPrint .ppCertLead{font-size:12pt!important;line-height:1.8!important}
+  body.print-stars #starPrint .ppCertStudent{font-size:25pt!important;margin:5mm 0 4mm!important}
+  body.print-stars #starPrint .ppCertReason{font-size:11pt!important;line-height:1.9!important;padding:5mm!important;border-radius:4mm!important}
+  body.print-stars #starPrint .ppCertMeta{gap:3mm!important;margin-top:4mm!important}
+  body.print-stars #starPrint .ppCertMeta div{padding:3mm!important;border-radius:3mm!important}
+  body.print-stars #starPrint .ppCertMeta span{font-size:8pt!important}
+  body.print-stars #starPrint .ppCertMeta strong{font-size:10pt!important}
+  body.print-stars #starPrint .ppCertSign{gap:6mm!important;margin-top:5mm!important}
+  body.print-stars #starPrint .ppCertSign strong{font-size:12pt!important}
+  body.print-stars #starPrint .ppCertSign span{font-size:8pt!important}
+  body.print-stars #starPrint .starAward *,
+  body.print-stars #starPrint .starAward *:before,
+  body.print-stars #starPrint .starAward *:after{
+    -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+    animation:none!important;transition:none!important;
+  }
+  body.print-stars #starPrint .starActions,
+  body.print-stars #starPrint button,
+  body.print-stars #starPrint [role="button"]{display:none!important}
+  body.print-stars #starPrint .bigStar{font-family:Georgia,"Times New Roman",serif!important;color:#B89548!important;font-size:82px!important;line-height:1!important}
+  body.print-stars #starPrint .cornerBadge{font-family:"IBM Plex Sans Arabic",Arial,sans-serif!important}
+
+  /* الشهادة التي تطبع من بوابة الطالبة: A4 كاملة بلا أزرار أو شارات واجهة. */
+  body.print-parent #parentPrint .ppCertificate{
+    box-sizing:border-box!important;width:190mm!important;max-width:190mm!important;
+    margin:0 auto!important;overflow:hidden!important;box-shadow:none!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;
+  }
+  body.print-parent #parentPrint .ppCertActions,
+  body.print-parent #parentPrint .ppCertNewest,
+  body.print-parent #parentPrint .ppStarArchiveBadge{display:none!important}
 }
 </style>
 
