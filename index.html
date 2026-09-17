@@ -17198,6 +17198,20 @@ function ppRenderReport(){
   if($("ppStatsSummary"))$("ppStatsSummary").innerHTML=reportHtml;
 }
 
+/* لا تترك أي صفحة داخل بوابة ولي الأمر فارغة: هذه البطاقات تظهر قبل أول رصد. */
+function ppSetupCards(title,items){
+  return `<section class="ppSetupPanel"><div class="ppSetupTitle"><span>✦</span><div><strong>${esc(title)}</strong><small>تظهر البيانات تلقائيًا عند إدخال المعلمة للمتابعة.</small></div></div><div class="ppSetupGrid">${items.map(item=>`<div class="ppSetupItem"><b>${esc(item[0])}</b><span>${esc(item[1])}</span></div>`).join("")}</div></section>`;
+}
+function ppFillEmptySections(){
+  const replace=(id,html)=>{const el=$(id);if(el&&el.querySelector(".ppEmpty"))el.innerHTML=html;};
+  replace("ppAgendaRows",ppSetupCards("أجندة الأسبوع القادم",[["المواد والخطة الأسبوعية","بانتظار إعداد أجندة المعلمات"],["المهام المطلوبة","ستظهر هنا فور نشرها"],["تنبيه ولي الأمر","لا يوجد تنبيه جديد حاليًا"]]));
+  replace("ppGradeCards",ppSetupCards("التقييمات الأكاديمية",[["التطبيق الصفي","لم تُرصد درجة بعد"],["التطبيق الإلكتروني","لم تُرصد درجة بعد"],["الواجب والمشروع","بانتظار الرصد"]]));
+  replace("ppGradeHistory",ppSetupCards("السجل التراكمي",[["متوسط الفترة","—"],["تطور الأداء","سيظهر بعد أول تقييم"],["تاريخ المتابعة","لا توجد بيانات سابقة"]]));
+  replace("ppNotesList",ppSetupCards("المتابعة السلوكية والتربوية",[["المشاركة الصفية","بانتظار رصد المعلمة"],["السلوك والانضباط","بانتظار رصد المعلمة"],["إحضار الأدوات","بانتظار رصد المعلمة"],["التفاعل على منصة قطر","بانتظار رصد المعلمة"]]));
+  replace("ppSeatingContent",ppSetupCards("مكان الجلوس",[["كروكي الشعبة","لم يُعتمد بعد"],["مقعد الطالبة","سيظهر فور إعداد الكروكي"],["الخصوصية","تظهر بيانات ابنتكم فقط"]]));
+  replace("ppCertificatesList",ppSetupCards("نجمة الأسبوع",[["تكريمات الطالبة","لا توجد شهادة مسجلة بعد"],["المادة","ستظهر عند اختيار الطالبة نجمة"],["الإنجازات","بانتظار إنجاز جديد"]]));
+}
+
 function ppRenderAll(){
   const s=ppStudent(); if(!s)return;
   ppRenderAnalyticsSubjectOptions();
@@ -17209,6 +17223,7 @@ function ppRenderAll(){
   ppRenderSeating();
   ppRenderCertificates();
   ppRenderReport();
+  ppFillEmptySections();
   if(ppCurrentScreen==="ppAnalytics")setTimeout(ppRenderCharts,20);
 }
 
@@ -21650,6 +21665,15 @@ body.parentDirect #studentPortal .ppEmpty,.ppDetailEmpty{
   padding:22px!important;border:1px dashed #d7bd84!important;border-radius:18px!important;
   color:#667b7d!important;background:linear-gradient(135deg,#fffdf8,#f7fbfa)!important;font-weight:800!important;
 }
+body.parentDirect #studentPortal .ppSetupPanel{padding:16px!important;border:1px solid #e5d9dc!important;border-radius:20px!important;background:linear-gradient(135deg,#fff,#f9fcfb)!important;box-shadow:0 8px 20px rgba(47,61,64,.06)!important}
+body.parentDirect #studentPortal .ppSetupTitle{display:flex!important;align-items:center!important;gap:11px!important;margin-bottom:14px!important;padding-bottom:12px!important;border-bottom:1px solid #eee2e4!important}
+body.parentDirect #studentPortal .ppSetupTitle>span{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border-radius:14px!important;background:linear-gradient(145deg,#7d1537,#9d2c50)!important;color:#f3d896!important;font-size:20px!important;box-shadow:0 5px 10px rgba(104,17,47,.18)!important}
+body.parentDirect #studentPortal .ppSetupTitle strong{display:block!important;color:#7d1537!important;font-family:"El Messiri","Noto Kufi Arabic",sans-serif!important;font-size:18px!important}
+body.parentDirect #studentPortal .ppSetupTitle small{display:block!important;margin-top:3px!important;color:#6f8183!important;font-size:12px!important;line-height:1.7!important}
+body.parentDirect #studentPortal .ppSetupGrid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important}
+body.parentDirect #studentPortal .ppSetupItem{min-height:72px!important;padding:11px!important;border-radius:14px!important;background:#fff!important;border:1px solid #e9e3e4!important}
+body.parentDirect #studentPortal .ppSetupItem b{display:block!important;color:#157b78!important;font-size:13px!important;line-height:1.6!important}
+body.parentDirect #studentPortal .ppSetupItem span{display:block!important;margin-top:5px!important;color:#6c7478!important;font-size:11px!important;line-height:1.65!important}
 body.parentDirect #studentPortal .ppPageHead:after{content:"تظهر تفاصيل هذا القسم تلقائيًا عند إدخال المعلمات للمتابعة.";display:block;margin-top:6px;color:#6d8586;font-size:12px;font-weight:700;line-height:1.7}
 
 /* شاشة تأكيد الخروج فوق كل شيء، مناسبة للمس */
@@ -21675,6 +21699,7 @@ body.parentDirect #studentPortal .ppPageHead:after{content:"تظهر تفاصي�
   body.parentDirect #studentPortal .ppHomeHero h2{font-size:28px!important}
   body.parentDirect #studentPortal .ppContextStudent strong{font-size:20px!important}
   body.parentDirect #studentPortal .ppMenuIcon{width:66px!important;height:66px!important}
+  body.parentDirect #studentPortal .ppSetupGrid{grid-template-columns:1fr!important}
   body.parentDirect #studentPortal .ppMenuText strong{font-size:17px!important}
   body.parentDirect #studentPortal .ppMenuText span{font-size:12.5px!important}
 }
