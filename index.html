@@ -17334,7 +17334,35 @@ function ppDoPrint(html){
   }));
 }
 
+function ppNotesPrintHTML(){
+  const s=ppStudent();
+  if(!s)return ppPrintHeader("ملاحظات المعلمات");
+  const snap=ppPeriodSnapshot(s,ppPeriodId());
+  const rows=snap.existing.filter(x=>
+    x.f.academicNote||x.f.note||x.f.behavior||x.f.participation||x.f.toolsStatus||x.f.tools||x.f.eLearning||x.f.overall
+  );
+  const body=rows.length ? rows.map(x=>{
+    const f=x.f;
+    const teacher=teacherName(f.teacherId,f.teacherNameSnapshot||"—");
+    return `<article class="ppNotesPrintCard">
+      <header><div><h2>${esc(x.row.subject)}</h2><p>المعلمة: ${esc(teacher)}</p></div><span>متابعة الفترة</span></header>
+      <section><h3>السلوك والانضباط</h3><p>${esc(behaviorDisplay(f))}</p></section>
+      <section><h3>ملاحظة المعلمة</h3><p>${esc(f.academicNote||f.note||"لا توجد ملاحظة أكاديمية مكتوبة لهذه الفترة.")}</p></section>
+      <div class="ppNotesPrintMetrics">
+        <div><span>المشاركة الصفية</span><strong>${esc(normalizeParticipation(f.participation))}</strong></div>
+        <div><span>إحضار الأدوات</span><strong>${esc(toolsDisplay(f))}</strong></div>
+        <div><span>التفاعل على منصة قطر</span><strong>${esc(normalizeELearning(f.eLearning??f.overall))}</strong></div>
+      </div>
+    </article>`;
+  }).join("") : `<div class="ppNotesPrintEmpty">لا توجد ملاحظات أو بيانات نوعية لهذه الفترة حتى الآن.</div>`;
+  return ppPrintHeader("متابعة السلوك والملاحظات")+`<section class="ppNotesPrint">${body}</section>`;
+}
+
 window.ppPrintScreen=id=>{
+  if(id==="ppNotes"){
+    ppDoPrint(ppNotesPrintHTML());
+    return;
+  }
   ppDoPrint(ppPrintHeader(PP_SCREEN_TITLES[id]||"متابعة الطالبة")+ppCloneForPrint(id));
 };
 
@@ -21849,6 +21877,26 @@ body.print-cards .dm50QrFrame .qr img{
   body.print-parent #parentPrint .ppCertActions,
   body.print-parent #parentPrint .ppCertNewest,
   body.print-parent #parentPrint .ppStarArchiveBadge{display:none!important}
+
+  /* تقرير الملاحظات: نسخة ورقية رسمية بدل نسخ واجهة الجوال. */
+  body.print-parent #parentPrint .ppNotesPrint{display:grid!important;gap:8mm!important}
+  body.print-parent #parentPrint .ppNotesPrintCard{
+    break-inside:avoid!important;page-break-inside:avoid!important;
+    border:1px solid #d7c6cd!important;border-radius:10px!important;
+    background:#fff!important;padding:8mm!important;box-shadow:none!important;
+  }
+  body.print-parent #parentPrint .ppNotesPrintCard header{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:8mm!important;padding-bottom:5mm!important;margin-bottom:5mm!important;border-bottom:2px solid #8A1538!important}
+  body.print-parent #parentPrint .ppNotesPrintCard h2{margin:0!important;color:#761633!important;font-size:17pt!important;line-height:1.35!important}
+  body.print-parent #parentPrint .ppNotesPrintCard header p{margin:2mm 0 0!important;color:#53666a!important;font-size:10pt!important}
+  body.print-parent #parentPrint .ppNotesPrintCard header>span{padding:2mm 4mm!important;border-radius:999px!important;background:#f8e9ee!important;color:#8A1538!important;font-size:9pt!important;font-weight:800!important;white-space:nowrap!important}
+  body.print-parent #parentPrint .ppNotesPrintCard section{margin:0 0 4mm!important;padding:4mm!important;border:1px solid #e7dddf!important;border-radius:7px!important;background:#fdfbfb!important}
+  body.print-parent #parentPrint .ppNotesPrintCard section h3{margin:0 0 2mm!important;color:#0d777b!important;font-size:11pt!important}
+  body.print-parent #parentPrint .ppNotesPrintCard section p{margin:0!important;color:#28383b!important;font-size:10.5pt!important;line-height:1.9!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}
+  body.print-parent #parentPrint .ppNotesPrintMetrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4mm!important;margin-top:5mm!important}
+  body.print-parent #parentPrint .ppNotesPrintMetrics>div{padding:4mm!important;border:1px solid #dce6e4!important;border-radius:7px!important;background:#f8fbfa!important;text-align:center!important}
+  body.print-parent #parentPrint .ppNotesPrintMetrics span{display:block!important;color:#64787a!important;font-size:8.5pt!important}
+  body.print-parent #parentPrint .ppNotesPrintMetrics strong{display:block!important;margin-top:2mm!important;color:#254d50!important;font-size:10.5pt!important}
+  body.print-parent #parentPrint .ppNotesPrintEmpty{padding:20mm 10mm!important;border:1px solid #d7c6cd!important;border-radius:10px!important;text-align:center!important;color:#586b6e!important;font-size:12pt!important}
 }
 </style>
 
