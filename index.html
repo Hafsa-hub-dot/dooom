@@ -12036,7 +12036,7 @@ const FIREBASE_CONFIG={
 const FIREBASE_DOCUMENT_PATH={collection:"schoolFollowup",document:"mainData_fresh_empty_20260914"};
 let cloudDb=null,cloudReady=false,cloudSaveTimer=null;
 /* رمز QR يُقرأ قبل وصول البيانات السحابية؛ نحتفظ به حتى يكتمل التحميل. */
-let parentQrToken="",parentLoadingTimer=null;
+let parentQrToken="",parentQrParams=new URLSearchParams(),parentLoadingTimer=null;
 
 function cloudStatus(message,type="info"){
   const el=$("firebaseStatus");
@@ -12164,13 +12164,20 @@ function publicSiteBaseUrl(){
   return normalizePublicSiteUrl(siteSettings().publicUrl)||currentHostedSiteUrl();
 }
 
-function studentPortalUrl(token){
+function studentPortalUrl(studentOrToken){
   const base=publicSiteBaseUrl();
   if(!base)return"";
 
   try{
     const u=new URL(base);
-    u.searchParams.set("student",String(token||""));
+    const s=studentOrToken&&typeof studentOrToken==="object"?studentOrToken:null;
+    u.searchParams.set("student",String(s?.token??studentOrToken??""));
+    /* نسخة احتياطية ثابتة داخل الباركود؛ تحمي الربط عند إعادة استيراد الطالبات. */
+    if(s){
+      u.searchParams.set("name",clean(s.name));
+      u.searchParams.set("grade",String(s.gradeNo??""));
+      u.searchParams.set("section",clean(s.section));
+    }
     return u.toString();
   }catch(e){
     return"";
@@ -16579,11 +16586,21 @@ function openPortalFromQr(token){
   clearTimeout(parentLoadingTimer);
   const value=String(token||"").trim();
   /* يدعم بطاقات الإصدارات السابقة: token أو كود الطالبة أو المعرّف الداخلي. */
-  const s=db.students.find(x=>[
+  let s=db.students.find(x=>[
     String(x.token||"").trim(),
     String(x.code||"").trim(),
     String(x.id||"").trim()
   ].includes(value));
+  /* البطاقات الجديدة تتضمن هوية احتياطية ثابتة؛ تُستخدم فقط عند تغيّر token. */
+  if(!s){
+    const name=clean(parentQrParams.get("name")),grade=String(parentQrParams.get("grade")||"").trim(),section=clean(parentQrParams.get("section"));
+    if(name){
+      const matches=db.students.filter(x=>norm(x.name)===norm(name)
+        &&(!grade||String(x.gradeNo??"")===grade)
+        &&(!section||norm(x.section)===norm(section)));
+      if(matches.length===1)s=matches[0];
+    }
+  }
   if(s){
     $("ppEnter").disabled=false;
     $("ppEnter").innerHTML='<span>دخول المتابعة</span><b aria-hidden="true">←</b>';
@@ -20049,7 +20066,7 @@ function fillCardDesignForm(){
 }
 
 function studentCardHTML(s,design,{preview=false}={}){
-  const portalUrl=studentPortalUrl(s.token);
+  const portalUrl=studentPortalUrl(s);
   const classText=classLabel(s.gradeNo,s.section);
 
   return`
@@ -20159,7 +20176,7 @@ function hydrateCardQrs(container,students){
     const target=container.querySelector(`[data-card-qr="${CSS.escape(String(s.id))}"]`);
     if(!target||target.childNodes.length)return;
 
-    const url=studentPortalUrl(s.token);
+    const url=studentPortalUrl(s);
     if(url)makeQR(target,url);
   });
 }
@@ -20287,7 +20304,7 @@ $("testQrBase").onclick=()=>{
   }
 
   const sample=db.students[0];
-  const url=sample?studentPortalUrl(sample.token):base;
+  const url=sample?studentPortalUrl(sample):base;
 
   if(!url){
     alert("تعذر تكوين رابط البوابة.");
@@ -20470,7 +20487,7 @@ fillScale();
 migrateLegacyPeriodIds();
 migrateLegacyStudentAgendas();
 migrateAssessmentStatuses();
-const parentQrParams=new URLSearchParams(location.search);
+parentQrParams=new URLSearchParams(location.search);
 parentQrToken=parentQrParams.get("student")||parentQrParams.get("code")||parentQrParams.get("id")||"";
 /* عند فتح QR: لا نبني صفحات المعلمات الثقيلة قبل شاشة ولي الأمر. */
 if(!parentQrToken){
