@@ -12036,7 +12036,7 @@ const FIREBASE_CONFIG={
 const FIREBASE_DOCUMENT_PATH={collection:"schoolFollowup",document:"mainData_fresh_empty_20260914"};
 let cloudDb=null,cloudReady=false,cloudSaveTimer=null;
 /* رمز QR يُقرأ قبل وصول البيانات السحابية؛ نحتفظ به حتى يكتمل التحميل. */
-let parentQrToken="";
+let parentQrToken="",parentLoadingTimer=null;
 
 function cloudStatus(message,type="info"){
   const el=$("firebaseStatus");
@@ -12083,9 +12083,9 @@ async function initializeCloudSync(){
     if(remote.exists&&remote.data()?.payload){
       db=normalizeDatabase(JSON.parse(remote.data().payload));
       localStorage.setItem(DB_KEY,JSON.stringify(db));
-      renderAll();
-      /* لا نُظهر "باركود غير صالح" قبل أن تصل قائمة الطالبات من Firebase. */
+      /* رابط ولي الأمر لا يحتاج بناء واجهات الإدارة والجداول كلها أولًا. */
       if(parentQrToken)openPortalFromQr(parentQrToken);
+      else renderAll();
       cloudStatus("تم تحميل بيانات المدرسة من قاعدة البيانات ✓","ok");
     }else{
       cloudStatus("قاعدة البيانات جاهزة؛ سيُحفظ أول تعديل تلقائيًا.","ok");
@@ -16565,9 +16565,18 @@ function openWaitingParentPortal(){
   $("ppSplashClass").textContent="لحظات، يتم تجهيز المتابعة بشكل آمن.";
   $("ppEnter").disabled=true;
   $("ppEnter").textContent="جارٍ التحميل…";
+  clearTimeout(parentLoadingTimer);
+  parentLoadingTimer=setTimeout(()=>{
+    $("ppSplashStudent").textContent="تعذر الوصول إلى المتابعة الآن";
+    $("ppSplashClass").textContent="تحققي من الإنترنت ثم أعيدي المحاولة. لا تضغطي رجوع.";
+    $("ppEnter").disabled=false;
+    $("ppEnter").textContent="إعادة المحاولة";
+    $("ppEnter").onclick=()=>location.reload();
+  },12000);
 }
 
 function openPortalFromQr(token){
+  clearTimeout(parentLoadingTimer);
   const value=String(token||"").trim();
   const s=db.students.find(x=>String(x.token||"").trim()===value);
   if(s){
@@ -16578,6 +16587,7 @@ function openPortalFromQr(token){
 }
 
 function openInvalidParentPortal(message="الباركود غير صالح أو لم تعد الطالبة موجودة."){
+  clearTimeout(parentLoadingTimer);
   ppDirect=true;
   document.body.classList.add("parentDirect");
   document.body.classList.add("ppLaunchOpen");
@@ -20455,12 +20465,15 @@ fillScale();
 migrateLegacyPeriodIds();
 migrateLegacyStudentAgendas();
 migrateAssessmentStatuses();
-renderAll();
-fillCardDesignForm();
-applyTeacherFontMode();
-applyTeacherRosterFilters();
-updateTeacherSaveStamp(contextLatestSaveTime());
 parentQrToken=new URLSearchParams(location.search).get("student")||"";
+/* عند فتح QR: لا نبني صفحات المعلمات الثقيلة قبل شاشة ولي الأمر. */
+if(!parentQrToken){
+  renderAll();
+  fillCardDesignForm();
+  applyTeacherFontMode();
+  applyTeacherRosterFilters();
+  updateTeacherSaveStamp(contextLatestSaveTime());
+}
 if(!parentQrToken){
   document.documentElement.classList.remove("parent-boot");
 }
