@@ -16584,6 +16584,11 @@ function openWaitingParentPortal(){
 
 function openPortalFromQr(token){
   clearTimeout(parentLoadingTimer);
+  /* لا نصف الرمز بأنه غير صالح إذا لم تصل قائمة الطالبات أصلًا. */
+  if(!Array.isArray(db.students)||db.students.length===0){
+    openInvalidParentPortal("لم يتم تحميل بيانات الطالبات من قاعدة البيانات بعد. تحققي من اتصال Firebase ثم أعيدي المحاولة.");
+    return;
+  }
   const value=String(token||"").trim();
   /* يدعم بطاقات الإصدارات السابقة: token أو كود الطالبة أو المعرّف الداخلي. */
   let s=db.students.find(x=>[
@@ -20446,7 +20451,11 @@ function renderAll(){
   renderTeacherSetupSummary();
   renderQualityDashboard();
   renderArchiveBank();
-  if($("anPeriod")){ analyticsFillFilters(); renderAnalytics(analyticsMode); }
+  /* مركز التحليلات يُحمّل في سكربت لاحق؛ لا نسمح له بإيقاف الصفحة عند الفتح. */
+  if($("anPeriod")&&typeof analyticsFillFilters==="function"){
+    analyticsFillFilters();
+    if(typeof renderAnalytics==="function")renderAnalytics(analyticsMode);
+  }
   renderTeacherMain();
   renderSeatingSelectors();
   renderQrBaseStatus();
@@ -20491,11 +20500,14 @@ parentQrParams=new URLSearchParams(location.search);
 parentQrToken=parentQrParams.get("student")||parentQrParams.get("code")||parentQrParams.get("id")||"";
 /* عند فتح QR: لا نبني صفحات المعلمات الثقيلة قبل شاشة ولي الأمر. */
 if(!parentQrToken){
-  renderAll();
-  fillCardDesignForm();
-  applyTeacherFontMode();
-  applyTeacherRosterFilters();
-  updateTeacherSaveStamp(contextLatestSaveTime());
+  /* ننتظر اكتمال السكربتات الملحقة (مثل مركز التحليلات) قبل أول رسم. */
+  setTimeout(()=>{
+    renderAll();
+    fillCardDesignForm();
+    applyTeacherFontMode();
+    applyTeacherRosterFilters();
+    updateTeacherSaveStamp(contextLatestSaveTime());
+  },0);
 }
 if(!parentQrToken){
   document.documentElement.classList.remove("parent-boot");
