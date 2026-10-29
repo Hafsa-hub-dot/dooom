@@ -1,0 +1,21 @@
+{
+  "project_name": "Free YouTube Shorts Pilot",
+  "channel_label": "تجربة علمية",
+  "signature": "Bent. Tayeb",
+  "start_date": "2026-10-29",
+  "timezone": "Asia/Qatar",
+  "width": 720,
+  "height": 1280,
+  "fps": 24,
+  "seconds_per_scene": 4.8,
+  "transition_seconds": 0.65,
+  "youtube_visibility": "private",
+  "made_for_kids": false,
+  "category_id": "28",
+  "hashtags": [
+    "#حقائق_علمية",
+    "#علوم",
+    "#Shorts"
+  ],
+  "publish_enabled": false
+}

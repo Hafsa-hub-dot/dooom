@@ -1,0 +1,39 @@
+name: YouTube PRIVATE Upload - manual test only
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_private_upload:
+        description: 'Type YES_PRIVATE to upload one test video privately'
+        required: true
+        type: string
+        default: 'NO'
+permissions:
+  contents: read
+concurrency:
+  group: youtube-private-upload-pilot
+  cancel-in-progress: false
+jobs:
+  private-upload:
+    if: ${{ inputs.confirm_private_upload == 'YES_PRIVATE' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer and Google API libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fontconfig fonts-noto-core fonts-noto-extra fonts-dejavu-core
+          python -m pip install --upgrade Pillow google-api-python-client google-auth google-auth-httplib2
+      - name: Render the approved pilot video
+        run: |
+          cd youtube-free-pilot
+          python render.py --date 2026-10-29
+          ffprobe -v error -show_entries stream=codec_name,width,height -of json output/TRY-001.mp4
+      - name: Upload as PRIVATE using the channel owner's consent
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          cd youtube-free-pilot
+          python upload_private.py output/TRY-001.json
