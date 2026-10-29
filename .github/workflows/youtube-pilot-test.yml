@@ -1,0 +1,42 @@
+name: Arabic Shorts Pilot — safe GitHub render
+on:
+  push:
+    branches:
+      - pilot/free-youtube-shorts-20261029
+    paths:
+      - 'youtube-free-pilot/**'
+      - '.github/workflows/youtube-pilot-test.yml'
+  workflow_dispatch:
+    inputs:
+      test_date:
+        description: 'Qatar date (YYYY-MM-DD)'
+        required: false
+        default: '2026-10-29'
+permissions:
+  contents: read
+jobs:
+  render-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FFmpeg, Arabic fonts and Pillow
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fontconfig fonts-noto-core fonts-noto-extra fonts-dejavu-core
+          python -m pip install --upgrade Pillow
+      - name: Create Arabic MP4 (no YouTube upload)
+        run: |
+          cd youtube-free-pilot
+          python render.py --date 2026-10-29
+      - name: Verify video exists and is playable
+        run: |
+          ffprobe -v error -show_entries stream=codec_name,width,height -of json youtube-free-pilot/output/TRY-001.mp4
+          test -s youtube-free-pilot/output/TRY-001.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arabic-shorts-pilot-mp4
+          path: |
+            youtube-free-pilot/output/TRY-001.mp4
+            youtube-free-pilot/output/TRY-001.json
+          retention-days: 3
